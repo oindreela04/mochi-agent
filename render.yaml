@@ -1,0 +1,26 @@
+# Render Blueprint: one web service with a persistent disk for the SQLite memory.
+# Deploy: Render dashboard -> New -> Blueprint -> pick this repo. It asks for the two API keys.
+#
+# Why a paid instance: free instances sleep after 15 idle minutes and lose their
+# filesystem, which would wipe every visitor's memory. The memory is the point.
+services:
+  - type: web
+    runtime: node
+    name: search-chat-agent
+    plan: 0.5c-512mb
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /healthz
+    disk:
+      name: memory
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: DB_PATH
+        value: /var/data/agent.db
+      - key: NODE_VERSION
+        value: "22"

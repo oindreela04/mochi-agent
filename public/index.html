@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Search Agent</title>
+<script src="/vendor/marked.js"></script>
+<script src="/vendor/purify.js"></script>
+<style>
+  :root {
+    --bg: #fbfaf7; --panel: #f3f1ec; --ink: #1d1c1a; --muted: #6f6b63; --line: #e3e0d8;
+    --accent: #2f5d50; --accent-soft: #e4eee9; --warn: #8a5a00; --warn-soft: #fbf0d9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161615; --panel: #1e1e1c; --ink: #ecebe7; --muted: #9b978e; --line: #2e2d2a;
+      --accent: #8cc4b2; --accent-soft: #23302c; --warn: #e7b85a; --warn-soft: #2e2716; }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink);
+    display: grid; grid-template-columns: 260px 1fr; }
+  aside { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  aside header { padding: 16px; display: flex; justify-content: space-between; align-items: center; }
+  aside h1 { font-size: 15px; margin: 0; letter-spacing: .01em; }
+  button { font: inherit; cursor: pointer; }
+  .ghost { background: none; border: 1px solid var(--line); color: var(--ink); border-radius: 8px; padding: 4px 10px; }
+  .ghost:hover { border-color: var(--muted); }
+  #threads { list-style: none; margin: 0; padding: 0 8px; overflow-y: auto; flex: 1; }
+  #threads li { padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #threads li small { display: block; color: var(--muted); font-size: 12px; }
+  #threads li:hover { background: var(--line); }
+  #threads li.active { background: var(--accent-soft); }
+  .clock { border-top: 1px solid var(--line); padding: 12px 16px; font-size: 12px; color: var(--muted); }
+  .clock input { width: 100%; margin-top: 6px; font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
+  main { display: flex; flex-direction: column; min-height: 0; height: 100vh; }
+  #banner { display: none; background: var(--warn-soft); color: var(--warn); padding: 8px 20px; font-size: 13px; }
+  #log { flex: 1; overflow-y: auto; padding: 28px 20px 12px; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  .empty { color: var(--muted); text-align: center; margin-top: 18vh; }
+  .empty h2 { color: var(--ink); font-weight: 600; font-size: 22px; margin-bottom: 6px; }
+  .msg { margin: 0 0 22px; }
+  .user { display: flex; justify-content: flex-end; }
+  .user .bubble { background: var(--accent-soft); padding: 9px 14px; border-radius: 14px 14px 4px 14px; max-width: 80%; white-space: pre-wrap; }
+  .meta { font-size: 12px; color: var(--muted); margin: 2px 0 6px; }
+  .steps { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .steps div::before { content: "↳ "; }
+  .steps .live::after { content: "…"; animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .2; } }
+  .answer :first-child { margin-top: 0; }
+  .answer table { border-collapse: collapse; font-size: 14px; margin: 8px 0; display: block; overflow-x: auto; }
+  .answer th, .answer td { border: 1px solid var(--line); padding: 5px 9px; text-align: left; vertical-align: top; }
+  .answer a { color: var(--accent); }
+  .answer sup a { text-decoration: none; font-size: 11px; padding: 0 2px; }
+  .answer code { background: var(--panel); padding: 1px 4px; border-radius: 4px; }
+  .sources { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .sources a { font-size: 12px; text-decoration: none; color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sources a:hover { border-color: var(--accent); }
+  .sources b { color: var(--accent); font-weight: 600; margin-right: 4px; }
+  .error { color: #b3261e; }
+  form { border-top: 1px solid var(--line); padding: 14px 20px 18px; }
+  .composer { max-width: 760px; margin: 0 auto; display: flex; gap: 8px; align-items: flex-end; }
+  textarea { flex: 1; resize: none; font: inherit; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); max-height: 200px; }
+  textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .send { background: var(--accent); color: var(--bg); border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 600; }
+  .profile { border-top: 1px solid var(--line); padding: 12px 16px; font-size: 13px; max-height: 32vh; overflow-y: auto; }
+  .profile h3 { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0 0 6px; text-transform: uppercase; letter-spacing: .05em; }
+  .profile ul { list-style: none; margin: 0; padding: 0; }
+  .profile li { display: flex; gap: 6px; align-items: baseline; padding: 2px 0; }
+  .profile li span { flex: 1; }
+  .profile li b { font-weight: 500; color: var(--muted); }
+  .profile li button { background: none; border: 0; color: var(--muted); padding: 0 2px; font-size: 14px; line-height: 1; }
+  .profile li button:hover { color: var(--ink); }
+  .profile p { color: var(--muted); margin: 0; }
+  .starter { max-width: 560px; margin: 0 auto; text-align: left; }
+  .starter .card { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-top: 18px; background: var(--panel); }
+  .starter .card p { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
+  .suggest { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .suggest[hidden] { display: none; }
+  .suggest button { text-align: left; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; color: var(--ink); font-size: 14px; }
+  .suggest button:hover { border-color: var(--accent); }
+  .primary { background: var(--accent); color: var(--bg); border: 0; border-radius: 8px; padding: 6px 12px; font-weight: 600; font-size: 14px; }
+  .primary:disabled { opacity: .5; cursor: default; }
+  @media (max-width: 760px) { body { grid-template-columns: 1fr; } aside { display: none; } }
+</style>
+</head>
+<body>
+<aside>
+  <header><h1>Search Agent</h1><button class="ghost" id="new">New chat</button></header>
+  <ul id="threads"></ul>
+  <section class="profile" aria-label="What I know about you">
+    <h3>What I know about you</h3>
+    <div id="profile"><p>Nothing yet. I pick up things like your team size, stack or budget as we talk.</p></div>
+  </section>
+  <div class="clock" id="clockBox" hidden>
+    Pretend it's (for testing "last Tuesday")
+    <input type="datetime-local" id="clock" />
+  </div>
+</aside>
+<main>
+  <div id="banner"></div>
+  <div id="log"><div class="wrap" id="msgs"></div></div>
+  <form id="form">
+    <div class="composer">
+      <textarea id="input" rows="1" placeholder="Ask anything…" autofocus></textarea>
+      <button class="send" id="send" type="submit">Send</button>
+    </div>
+  </form>
+</main>
+<script>
+const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const $ = (id) => document.getElementById(id);
+let threadId = null, busy = null;
+
+const fmt = (ms, opts = { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) =>
+  new Date(ms).toLocaleString(undefined, opts);
+const host = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function renderAnswer(el, text, sources) {
+  const byN = new Map((sources || []).map((s) => [s.n, s]));
+  // [1] or [1, 3] -> superscript links to the source
+  const linked = text.replace(/\[(\d+(?:\s*,\s*\d+)*)\]/g, (m, nums) =>
+    nums.split(/\s*,\s*/).map((n) => {
+      const s = byN.get(Number(n));
+      return s ? `<sup><a href="${esc(s.url)}" target="_blank" rel="noopener" title="${esc(s.title)}">${n}</a></sup>` : '';
+    }).join(''));
+  el.innerHTML = DOMPurify.sanitize(marked.parse(linked), { ADD_ATTR: ['target'] });
+}
+
+function renderSources(el, text, sources) {
+  const cited = new Set([...text.matchAll(/\[(\d+(?:\s*,\s*\d+)*)\]/g)].flatMap((m) => m[1].split(/\s*,\s*/).map(Number)));
+  const list = (sources || []).filter((s) => cited.has(s.n));
+  el.innerHTML = list.map((s) =>
+    `<a href="${esc(s.url)}" target="_blank" rel="noopener" title="${esc(s.title)}"><b>${s.n}</b>${esc(host(s.url))}${s.published ? ' · ' + esc(s.published.slice(0, 10)) : ''}</a>`).join('');
+}
+
+function addUser(text, at) {
+  const d = document.createElement('div');
+  d.className = 'msg';
+  d.innerHTML = `<div class="user"><div class="bubble"></div></div><div class="meta" style="text-align:right">${fmt(at)}</div>`;
+  d.querySelector('.bubble').textContent = text;
+  $('msgs').append(d);
+  return d;
+}
+
+function addAssistant() {
+  const d = document.createElement('div');
+  d.className = 'msg';
+  d.innerHTML = '<div class="steps"></div><div class="answer"></div><div class="sources"></div><div class="meta"></div>';
+  $('msgs').append(d);
+  return { root: d, steps: d.querySelector('.steps'), answer: d.querySelector('.answer'), sources: d.querySelector('.sources'), meta: d.querySelector('.meta') };
+}
+
+function step(a, text) {
+  a.steps.querySelectorAll('.live').forEach((e) => e.classList.remove('live'));
+  const s = document.createElement('div');
+  s.className = 'live';
+  s.textContent = text;
+  a.steps.append(s);
+}
+
+const scroll = () => { const l = $('log'); l.scrollTop = l.scrollHeight; };
+
+async function loadThreads() {
+  const threads = await (await fetch('/api/threads')).json();
+  $('threads').innerHTML = '';
+  for (const t of threads) {
+    const li = document.createElement('li');
+    li.className = t.id === threadId ? 'active' : '';
+    li.innerHTML = `${esc(t.title)}<small>${fmt(t.updatedAt, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</small>`;
+    li.onclick = () => openThread(t.id);
+    $('threads').append(li);
+  }
+}
+
+async function openThread(id) {
+  threadId = id;
+  $('msgs').innerHTML = '';
+  for (const t of await (await fetch(`/api/threads/${id}`)).json()) {
+    addUser(t.userText, t.createdAt);
+    const a = addAssistant();
+    renderAnswer(a.answer, t.assistantText, t.sources);
+    renderSources(a.sources, t.assistantText, t.sources);
+  }
+  loadThreads();
+  scroll();
+}
+
+const SUGGESTIONS = [
+  'On Monday we shortlisted 5 CRM tools for a 20-person sales team. Has any of them changed pricing or shipped something big since?',
+  'What did I ask you on 3 November? Is your answer still correct today?',
+  'Last Tuesday I asked you about Postgres hosting. Has any pricing changed since then?',
+  'What do you know about me?',
+];
+let demoStatus = 'unavailable';
+
+function newChat() {
+  threadId = null;
+  const card = demoStatus === 'unavailable' ? '' : `
+    <div class="card">
+      <p>New here? Load three example chats, dated last Monday, last Tuesday and 3 November, then ask about them. They were answered by this agent with live search and are labelled “Example”.</p>
+      <button class="primary" id="loadDemo" ${demoStatus !== 'ready' ? 'disabled' : ''}>${demoStatus === 'ready' ? 'Load example history' : 'Preparing examples…'}</button>
+      <div class="suggest" id="suggest" hidden>${SUGGESTIONS.map((q) => `<button type="button">${esc(q)}</button>`).join('')}</div>
+    </div>`;
+  $('msgs').innerHTML = `<div class="empty"><div class="starter"><h2 style="text-align:center">What do you want to know?</h2>
+    <p style="text-align:center">I search the web and remember our past chats and what matters to you, so you can ask “has anything changed since Monday?”</p>${card}</div></div>`;
+  $('loadDemo')?.addEventListener('click', loadDemo);
+  $('suggest')?.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+    $('input').value = b.textContent; $('input').dispatchEvent(new Event('input')); $('input').focus();
+  }));
+  loadThreads();
+  $('input').focus();
+}
+
+async function loadDemo() {
+  const btn = $('loadDemo');
+  btn.disabled = true;
+  const res = await fetch('/api/demo', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tz, now: $('clock').value ? new Date($('clock').value).toISOString() : undefined }) });
+  if (!res.ok) { btn.textContent = (await res.json()).error; return; }
+  btn.textContent = 'Example history loaded';
+  $('suggest').hidden = false;
+  loadThreads();
+  loadProfile();
+}
+
+async function loadProfile() {
+  const facts = await (await fetch('/api/profile')).json();
+  if (!facts.length) { $('profile').innerHTML = '<p>Nothing yet. I pick up things like your team size, stack or budget as we talk.</p>'; return; }
+  $('profile').innerHTML = '<ul>' + facts.map((f) =>
+    `<li><span><b>${esc(f.key)}:</b> ${esc(f.value)}</span><button type="button" title="Forget this" data-key="${esc(f.key)}">×</button></li>`).join('') + '</ul>';
+  $('profile').querySelectorAll('button').forEach((b) => b.addEventListener('click', async () => {
+    await fetch(`/api/profile/${encodeURIComponent(b.dataset.key)}`, { method: 'DELETE' });
+    loadProfile();
+  }));
+}
+
+async function send(text) {
+  const clock = $('clock').value;
+  const now = clock ? new Date(clock).toISOString() : undefined;
+  $('msgs').querySelector('.empty')?.remove();
+  addUser(text, now ? Date.parse(now) : Date.now());
+  const a = addAssistant();
+  step(a, 'Thinking');
+  scroll();
+
+  busy = new AbortController();
+  $('send').textContent = 'Stop';
+  let answer = '', sources = [], firstToken = 0;
+  const t0 = performance.now();
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, signal: busy.signal,
+      body: JSON.stringify({ threadId, message: text, tz, now }),
+    });
+    if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+    const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buf = '';
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += value;
+      let i;
+      while ((i = buf.indexOf('\n\n')) >= 0) {
+        const chunk = buf.slice(0, i); buf = buf.slice(i + 2);
+        const data = chunk.split('\n').find((l) => l.startsWith('data:'));
+        if (!data) continue;
+        const ev = JSON.parse(data.slice(5));
+        if (ev.type === 'thread') { threadId = ev.threadId; }
+        else if (ev.type === 'memory') {
+          const n = ev.recalled.length;
+          if (n) step(a, `Recalled ${n} earlier chat${n > 1 ? 's' : ''}: ${ev.recalled.map((r) => fmt(r.at, { weekday: 'short', day: 'numeric', month: 'short' })).join(', ')}`);
+          else if (ev.dates.length) step(a, `No earlier chats found for ${ev.dates.join(', ')}`);
+          if (ev.profile) step(a, `Using ${ev.profile} thing${ev.profile > 1 ? 's' : ''} I know about you`);
+        }
+        else if (ev.type === 'search') {
+          const filt = [ev.recency && `past ${ev.recency}`, ev.domains?.length && ev.domains.join(', ')].filter(Boolean).join(' · ');
+          step(a, `Searching: ${ev.queries.join(' · ')}${filt ? ` (${filt})` : ''}`);
+        }
+        else if (ev.type === 'sources') { sources = ev.sources; step(a, `Reading ${sources.length} sources`); }
+        else if (ev.type === 'text') {
+          if (!firstToken) { firstToken = performance.now(); a.steps.querySelectorAll('.live').forEach((e) => e.classList.remove('live')); }
+          answer += ev.delta;
+          renderAnswer(a.answer, answer, sources);
+          scroll();
+        }
+        else if (ev.type === 'done') {
+          renderSources(a.sources, answer, sources);
+          a.meta.textContent = `${((performance.now() - t0) / 1000).toFixed(1)}s`;
+          setTimeout(loadProfile, 4000);
+        }
+        else if (ev.type === 'error') { a.answer.innerHTML = `<p class="error">${esc(ev.message)}</p>`; }
+      }
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') a.answer.innerHTML += `<p class="error">${esc(e.message)}</p>`;
+  } finally {
+    a.steps.querySelectorAll('.live').forEach((e) => e.classList.remove('live'));
+    busy = null;
+    $('send').textContent = 'Send';
+    loadThreads();
+    scroll();
+  }
+}
+
+$('form').onsubmit = (e) => {
+  e.preventDefault();
+  if (busy) { busy.abort(); return; }
+  const text = $('input').value.trim();
+  if (!text) return;
+  $('input').value = '';
+  $('input').style.height = 'auto';
+  send(text);
+};
+$('input').onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('form').requestSubmit(); } };
+$('input').oninput = (e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; };
+$('new').onclick = newChat;
+$('clock').onchange = () => {
+  const v = $('clock').value;
+  $('banner').style.display = v ? 'block' : 'none';
+  $('banner').textContent = v ? `Testing mode: the agent thinks it is ${fmt(Date.parse(v))}. Clear the date in the sidebar to go back to real time.` : '';
+};
+
+fetch('/api/config').then((r) => r.json()).then((c) => {
+  $('clockBox').hidden = !c.allowClockOverride;
+  demoStatus = c.demo;
+  if (!threadId) newChat();
+  if (c.demo === 'building') {
+    const poll = setInterval(async () => {
+      const next = (await (await fetch('/api/config')).json()).demo;
+      if (next === 'building') return;
+      clearInterval(poll);
+      demoStatus = next;
+      if (!threadId && $('loadDemo')) newChat();
+    }, 10000);
+  }
+  if (c.missingKeys.length) {
+    $('banner').style.display = 'block';
+    $('banner').textContent = `Missing ${c.missingKeys.join(' and ')} in .env. Copy .env.example to .env, add the keys and restart.`;
+  }
+});
+newChat();
+loadProfile();
+</script>
+</body>
+</html>

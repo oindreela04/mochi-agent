@@ -1,0 +1,32 @@
+{
+  "name": "search-chat-agent",
+  "version": "1.0.0",
+  "description": "A chat agent with web search and dated memory of past conversations",
+  "scripts": {
+    "dev": "node --disable-warning=ExperimentalWarning --import tsx --watch src/main.ts",
+    "start": "node --disable-warning=ExperimentalWarning --import tsx src/main.ts",
+    "test": "node --disable-warning=ExperimentalWarning --import tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "scenarios": "node --disable-warning=ExperimentalWarning --import tsx scripts/scenarios.ts",
+    "demo:build": "node --disable-warning=ExperimentalWarning --import tsx scripts/build-demo.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
+    "@hono/node-server": "^2.1.7",
+    "chrono-node": "^2.10.3",
+    "dompurify": "^3.4.17",
+    "hono": "^4.13.18",
+    "marked": "^18.2.0",
+    "tsx": "^4.23.15",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
+  },
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  }
+}

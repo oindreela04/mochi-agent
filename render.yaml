@@ -1,26 +1,26 @@
-# Render Blueprint: one web service with a persistent disk for the SQLite memory.
-# Deploy: Render dashboard -> New -> Blueprint -> pick this repo. It asks for the two API keys.
+# Render Blueprint. Deploy: Render dashboard -> New -> Blueprint -> pick this repo.
+# Set ANTHROPIC_API_KEY and TAVILY_API_KEY when asked.
 #
-# Why a paid instance: free instances sleep after 15 idle minutes and lose their
-# filesystem, which would wipe every visitor's memory. The memory is the point.
+# This runs on the free plan: the instance sleeps after 15 idle minutes and its
+# filesystem is reset, so chat memory lasts while it is awake and the example
+# history is rebuilt on wake (about a minute). For memory that survives across
+# days, switch to a paid plan and attach a disk:
+#
+#   plan: 0.5c-512mb
+#   disk: { name: memory, mountPath: /var/data, sizeGB: 1 }
+#   and set DB_PATH=/var/data/agent.db
 services:
   - type: web
     runtime: node
     name: mochi-agent
-    plan: 0.5c-512mb
+    plan: free
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /healthz
-    disk:
-      name: memory
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: TAVILY_API_KEY
         sync: false
-      - key: DB_PATH
-        value: /var/data/agent.db
       - key: NODE_VERSION
         value: "22"

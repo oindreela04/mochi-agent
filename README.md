@@ -26,7 +26,7 @@ You can also make your own history:
 
 ## Deploy (Render)
 
-`render.yaml` defines one web service with a 1 GB disk for the SQLite file. In Render: **New → Blueprint**, pick this repo, and paste the two API keys when asked. Free instances are not suitable, because they sleep after 15 idle minutes and lose their disk, which would wipe everyone's memory.
+`render.yaml` defines one web service. In Render: **New → Blueprint**, pick this repo, and paste the two API keys when asked. It runs on the free plan, which sleeps after 15 idle minutes and resets its disk, so memory lasts while it's awake. The file explains how to switch to a paid plan with a persistent disk so memory survives across days.
 
 The example history ships in `demo/history.json`. If that file is missing, the server builds it with the real agent on first boot, which takes about a minute. Regenerate it with `npm run demo:build`.
 

@@ -6,7 +6,7 @@
 services:
   - type: web
     runtime: node
-    name: search-chat-agent
+    name: mochi-agent
     plan: 0.5c-512mb
     buildCommand: npm ci
     startCommand: npm start

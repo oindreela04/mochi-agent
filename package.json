@@ -1,7 +1,7 @@
 {
-  "name": "search-chat-agent",
+  "name": "mochi-agent",
   "version": "1.0.0",
-  "description": "A chat agent with web search and dated memory of past conversations",
+  "description": "Mochi: a chat agent with web search, dated memory of past conversations and a learned user profile",
   "scripts": {
     "dev": "node --disable-warning=ExperimentalWarning --import tsx --watch src/main.ts",
     "start": "node --disable-warning=ExperimentalWarning --import tsx src/main.ts",

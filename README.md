@@ -1,6 +1,6 @@
-# Search Agent
+# Mochi
 
-A chat agent with one tool, web search. It remembers your earlier chats by date and learns what matters to you. Ask *"Last Tuesday I asked you about Postgres hosting. Has any pricing changed since?"* and it finds that chat, takes the prices it gave you as the baseline, re-checks each one, and tells you what changed, with sources.
+A search agent with memory, built for the minimi hiring challenge. It has one tool, web search. It remembers your earlier chats by date and learns what matters to you. Ask *"Last Tuesday I asked you about Postgres hosting. Has any pricing changed since?"* and it finds that chat, takes the prices it gave you as the baseline, re-checks each one, and tells you what changed, with sources.
 
 [DESIGN.md](DESIGN.md) explains how it works and why.
 
